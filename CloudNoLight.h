@@ -24,12 +24,12 @@ if(dir.z < yThreshold){
 		
 		float atmosHeight = length(p - center) - EarthRadius;
 		cloudHeightIn = clamp((atmosHeight-CloudStart)/(CloudHeight), 0.0, 1.0);
-		p.z += Time*10.3;
+		//p.z += Time*10.3;
 		float largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000005*p.yx, 0.0).x-0.03)*10.0, 0.0, 2.0);
 		
-		p.x += Time*8.3;
+		//p.x += Time*8.3;
 		float weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.000002*p.yx, 0.0).x - 0.01) /0.72;
-		//weather *= smoothstep(0.0, 0.5, cloudHeightIn) * smoothstep(1.0, 0.5, cloudHeightIn);
+		weather *= smoothstep(0.0, 0.5, cloudHeightIn) * smoothstep(1.0, 0.5, cloudHeightIn);
 		float cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightIn));
 		//if(cloudShape <= 0.0) return 0.0;
 		if(cloudShape > 0.0){
@@ -117,13 +117,13 @@ if(dir.z < yThreshold){
 		
 		if(density > 0.0){
 			
-			float intensity = 0.3;
-			float3 ambient = (0.5 + 0.6*cloudHeightIn)*float3(0.2, 0.5, 1.0)*6.5 + float3(0.8,0.8,0.8) * max(0.0, 1.0-2.0*cloudHeightIn);
-			float3 radiance = ambient + SunPower*intensity;
-			radiance*=density;
-			color += T*(radiance - radiance*exp(-density*stepS)) / density;
-			T *= exp(-density*stepS);
-			if(T <= 0.05) break;
+			//float intensity = 0.3;
+			//float3 ambient = (0.5 + 0.6*cloudHeightIn)*float3(0.2, 0.5, 1.0)*6.5 + float3(0.8,0.8,0.8) * max(0.0, 1.0-2.0*cloudHeightIn);
+			//float3 radiance = ambient + SunPower*intensity;
+			//radiance*=density;
+			color += 0.2;//T*(radiance - radiance*exp(-density*stepS)) / density;
+			//T *= exp(-density*stepS);
+			//f(T <= 0.05) break;
 		}
 		
 		p += dir*stepS;
