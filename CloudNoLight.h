@@ -1,0 +1,138 @@
+float3 color = float3(0,0,0);
+float3 sun_direction = normalize( float3(0.6,0.45,-0.8) );
+float3 SunPower = float3(1.0,0.9,0.6) * 750.0;
+float3 LOW_SCATTER = float3(1.0, 0.7, 0.5);
+float mu = dot(sun_direction, dir);
+float4 test = float4(0,0,0,0);
+
+//skyRay
+
+//nbSample = RaymarchStep;
+float3 p = org + distToAtmStart * dir;
+float stepS = (distToAtmEnd - distToAtmStart) / RaymarchStep;
+float T = 1;
+//phaseFuntion
+p += dir * stepS;// * hashSky;
+if(dir.z < yThreshold){
+	for(int i = 0; i < RaymarchStep; i++){
+		float cloudHeightIn;
+		float density = 0.0;
+		
+		///////////////////////////////////////////////////////////////////////////////
+		/////////////////////////////////sample clouds/////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////
+		
+		float atmosHeight = length(p - center) - EarthRadius;
+		cloudHeightIn = clamp((atmosHeight-CloudStart)/(CloudHeight), 0.0, 1.0);
+		p.z += Time*10.3;
+		float largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000005*p.yx, 0.0).x-0.03)*10.0, 0.0, 2.0);
+		
+		p.x += Time*8.3;
+		float weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.000002*p.yx, 0.0).x - 0.01) /0.72;
+		//weather *= smoothstep(0.0, 0.5, cloudHeightIn) * smoothstep(1.0, 0.5, cloudHeightIn);
+		float cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightIn));
+		//if(cloudShape <= 0.0) return 0.0;
+		if(cloudShape > 0.0){
+			p.x += Time*12.3;
+			
+			//calculate fbm return FBM1
+			float3x3 m = {0.00,  0.80,  0.60, -0.80,  0.36, -0.48, -0.60, -0.48,  0.64};
+			float f_FBM;
+			float3 pFBM = p * 0.01 * FPerlin; //float den= max(0.0, cloudShape-0.7*fbm(p*.01));
+
+			//noise1
+			float3 pN = floor(pFBM);
+			float3 fN = frac(pFBM);
+			fN = fN*fN*(3.0-2.0*fN);
+			float2 uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
+			float2 rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
+			float noise = lerp(rgN.x, rgN.y, fN.z);
+			
+			f_FBM = 0.5000*noise; pFBM = mul(m,pFBM)*2.02;/////////////1
+			
+			//noise2
+			pN = floor(pFBM);
+			fN = frac(pFBM);
+			fN = fN*fN*(3.0-2.0*fN);
+			uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
+			rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
+			noise = lerp(rgN.x, rgN.y, fN.z);
+			
+			f_FBM += 0.2500*noise; pFBM = mul(m,pFBM)*2.03;///////////////2
+			
+			//noise3
+			pN = floor(pFBM);
+			fN = frac(pFBM);
+			fN = fN*fN*(3.0-2.0*fN);
+			uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
+			rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
+			noise = lerp(rgN.x, rgN.y, fN.z);
+			f_FBM += 0.1250*noise;/////////////////3
+			
+			float den = max(0.0, cloudShape - f_FBM);
+			
+			//if(den <= 0.0) return 0.0;
+			if(den > 0.0){
+				p.y += Time*15.2;
+				//den= max(0.0, den-0.2*fbm(p*0.05));
+				//calculate FBM
+				pFBM = p * 0.05 * FPerlin;
+
+				//noise1
+				pN = floor(pFBM);
+				fN = frac(pFBM);
+				fN = fN*fN*(3.0-2.0*fN);
+				uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
+				rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
+				noise = lerp(rgN.x, rgN.y, fN.z);
+				
+				f_FBM = 0.5000*noise; pFBM = mul(m,pFBM)*2.02;/////////////1
+				
+				//noise2
+				pN = floor(pFBM);
+				fN = frac(pFBM);
+				fN = fN*fN*(3.0-2.0*fN);
+				uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
+				rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
+				noise = lerp(rgN.x, rgN.y, fN.z);
+				
+				f_FBM += 0.2500*noise; pFBM = mul(m,pFBM)*2.03;///////////////2
+				
+				//noise3
+				pN = floor(pFBM);
+				fN = frac(pFBM);
+				fN = fN*fN*(3.0-2.0*fN);
+				uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
+				rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
+				noise = lerp(rgN.x, rgN.y, fN.z);
+				f_FBM += 0.1250*noise;/////////////////3
+				
+				den = max(0.0, den - f_FBM);
+				density = largeWeather*0.2*min(1.0, 5.0*den);
+				
+			}else density = 0.0;
+		}else density = 0.0;
+		
+		//color = float3(density, density, density);
+		
+		if(density > 0.0){
+			
+			float intensity = 0.3;
+			float3 ambient = (0.5 + 0.6*cloudHeightIn)*float3(0.2, 0.5, 1.0)*6.5 + float3(0.8,0.8,0.8) * max(0.0, 1.0-2.0*cloudHeightIn);
+			float3 radiance = ambient + SunPower*intensity;
+			radiance*=density;
+			color += T*(radiance - radiance*exp(-density*stepS)) / density;
+			T *= exp(-density*stepS);
+			if(T <= 0.05) break;
+		}
+		
+		p += dir*stepS;
+	}
+	
+	//float fogPhase = henyey;//0.5*HenyeyGreenstein(mu, 0.7)+0.5*HenyeyGreenstein(mu, -0.6);    
+    //test = float4(lerp(0.1*LOW_SCATTER*SunPower+10.0*float3(0.55, 0.8, 1.0), color, exp(-0.0003*fogDistance)), 1.0) * 0.05;
+	
+}
+
+return float4(color,1);
+//return test;
