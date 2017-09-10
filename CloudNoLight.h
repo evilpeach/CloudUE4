@@ -1,7 +1,7 @@
 float3 color = float3(0,0,0);
-float3 sun_direction = normalize( float3(0.6,0.45,-0.8) );
-float3 SunPower = float3(1.0,0.9,0.6) * 750.0;
-float3 LOW_SCATTER = float3(1.0, 0.7, 0.5);
+//float3 sun_direction = normalize( float3(0.6,0.45,-0.8) );
+//float3 SunPower = float3(1.0,0.9,0.6) * 750.0;
+//float3 LOW_SCATTER = float3(1.0, 0.7, 0.5);
 float mu = dot(sun_direction, dir);
 float4 test = float4(0,0,0,0);
 
@@ -12,7 +12,7 @@ float3 p = org + distToAtmStart * dir;
 float stepS = (distToAtmEnd - distToAtmStart) / RaymarchStep;
 float T = 1;
 //phaseFuntion
-p += dir * stepS;// * hashSky;
+p += dir * stepS * hashSky;
 if(dir.z < yThreshold){
 	for(int i = 0; i < RaymarchStep; i++){
 		float cloudHeightIn;
@@ -33,10 +33,10 @@ if(dir.z < yThreshold){
 		float cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightIn));
 		//if(cloudShape <= 0.0) return 0.0;
 		if(cloudShape > 0.0){
-			p.x += Time*12.3;
+			//p.x += Time*12.3;
 			
 			//calculate fbm return FBM1
-			float3x3 m = {0.00,  0.80,  0.60, -0.80,  0.36, -0.48, -0.60, -0.48,  0.64};
+			float3x3 m = {0.00,  0.80,  0.60, -0.80,  0.36, -0.48, -0.60, -0.48, 0.64};
 			float f_FBM;
 			float3 pFBM = p * 0.00001 * FPerlin; //float den= max(0.0, cloudShape-0.7*fbm(p*.01));
 
@@ -73,10 +73,10 @@ if(dir.z < yThreshold){
 			
 			//if(den <= 0.0) return 0.0;
 			if(den > 0.0){
-				p.y += Time*15.2;
+				//p.y += Time*15.2;
 				//den= max(0.0, den-0.2*fbm(p*0.05));
 				//calculate FBM
-				pFBM = p * 0.00005 * FPerlin;
+				pFBM = p * 0.0005 * FPerlin;
 
 				//noise1
 				pN = floor(pFBM);
@@ -107,43 +107,44 @@ if(dir.z < yThreshold){
 				noise = lerp(rgN.x, rgN.y, fN.z);
 				f_FBM += 0.1250*noise;/////////////////3
 				
-				den = max(0.0, den - f_FBM);
+				den = max(0.0, den - 0.2*f_FBM);
 				density = largeWeather*0.2*min(1.0, 5.0*den);
 				
 			}else density = 0.0;
 		}else density = 0.0;
 		
 		//color = float3(density, density, density);
-		
+		//density = clamp(density , 0.0,  1.0);
 		if(density > 0.0){
 			
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////LIGHT//////////////////////////////////////////////////////////
 			//float zMaxl = 600;
+			float LightDensity = 0;
 			float stepL = zMaxl/LightStep;
 			float lighRayDen = 0.0;    
 			float3 pL = p;
-			pL += sun_direction*stepL;//*hash(dot(p, vec3(12.256, 2.646, 6.356)) + iTime);
+			pL += sun_direction*stepL * hashSky;//*hash(dot(p, vec3(12.256, 2.646, 6.356)) + iTime);
 			for(int j = 0; j < LightStep; j++){
 				//////sample ///////
-				pL += sun_direction*float(j)*stepL;
+				float3 pLL = pL + sun_direction * float(j) * stepL * gled;
 				
-				atmosHeight = length(p - center) - EarthRadius;
-				cloudHeightIn = clamp((atmosHeight-CloudStart)/(CloudHeight), 0.0, 1.0);
-				p.z += Time*10.3;
-				largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000001*largeWeatherScale*p.yx, 0.0).x-0.03)*10.0, 0.0, 2.0);
+				float atmosHeightLight = length(pLL - center) - EarthRadius;
+				float cloudHeightLight = clamp((atmosHeightLight-CloudStart)/(CloudHeight), 0.0, 1.0);
+				//pLL.z += Time*10.3;
+				largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000001*largeWeatherScale*pLL.yx, 0.0).x-0.03)*10.0, 0.0, 2.0);
 				
-				p.x += Time*8.3;
-				weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.0000001*WeatherScale*p.yx, 0.0).x - 0.01) /0.72;
-				weather *= smoothstep(0.0, 0.5, cloudHeightIn) * smoothstep(1.0, 0.5, cloudHeightIn);
-				cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightIn));
+				//pLL.x += Time*8.3;
+				weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.0000001*WeatherScale*pLL.yx, 0.0).x - 0.01) /0.72;
+				weather *= smoothstep(0.0, 0.5, cloudHeightLight) * smoothstep(1.0, 0.5, cloudHeightLight);
+				cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightLight));
 				//if(cloudShape <= 0.0) return 0.0;
 				if(cloudShape > 0.0){
-					p.x += Time*12.3;
-					
+					//pLL.x += Time*12.3;
+					//p
 					//calculate fbm return FBM1
 					float3x3 m = {0.00,  0.80,  0.60, -0.80,  0.36, -0.48, -0.60, -0.48,  0.64};
 					float f_FBM;
-					float3 pFBM = p * 0.00001 * FPerlin; //float den= max(0.0, cloudShape-0.7*fbm(p*.01));
+					float3 pFBM = pLL * 0.00001 * FPerlin; //float den= max(0.0, cloudShape-0.7*fbm(p*.01));
 
 					//noise1
 					float3 pN = floor(pFBM);
@@ -178,10 +179,10 @@ if(dir.z < yThreshold){
 					
 					//if(den <= 0.0) return 0.0;
 					if(den > 0.0){
-						p.y += Time*15.2;
+						//p.y += Time*15.2;
 						//den= max(0.0, den-0.2*fbm(p*0.05));
 						//calculate FBM
-						pFBM = p * 0.00005 * FPerlin;
+						pFBM = pLL * 0.005 * FPerlin;
 
 						//noise1
 						pN = floor(pFBM);
@@ -213,25 +214,26 @@ if(dir.z < yThreshold){
 						f_FBM += 0.1250*noise;/////////////////3
 						
 						den = max(0.0, den - f_FBM);
-						density = largeWeather*0.2*min(1.0, 5.0*den);
+						LightDensity = largeWeather*0.2*min(1.0, 5.0*den);
 						
-					}else density = 0.0;
-				}else density = 0.0;
+					}else LightDensity = 0.0;
+				}else LightDensity = 0.0;
 				
-				lighRayDen += density;
+				
+				lighRayDen += LightDensity;
 			}
 			float scatterAmount = lerp(0.008, 1.0, smoothstep(0.96, 0.0, mu));
-			float beersLaw = exp(-stepL*lighRayDen)+0.5*scatterAmount*exp(-0.1*stepL*lighRayDen)+scatterAmount*0.4*exp(-0.02*stepL*lighRayDen);
+			float beersLaw = exp(-stepL*lighRayDen) + 0.5*scatterAmount*exp(-0.1*stepL*lighRayDen) + scatterAmount*0.4*exp(-0.02*stepL*lighRayDen);
 			float intensity = beersLaw * phaseFunction * lerp(0.05 + 1.5*pow(min(1.0, density*8.5), 0.3+5.5*cloudHeightIn), 1.0, clamp(lighRayDen*0.4, 0.0, 1.0));
 			//end*/
 			
 			//float intensity = 0.3;
-			float3 ambient = (0.5 + 0.6*cloudHeightIn)*float3(0.2, 0.5, 1.0)*6.5 + float3(0.8,0.8,0.8) * max(0.0, 1.0-2.0*cloudHeightIn);
+			float3 ambient = (0.5 + 0.6*cloudHeightIn)*float3(0.2, 0.5, 1.0) + float3(0.8,0.8,0.8) * max(0.0, 1.0-2.0*cloudHeightIn);
 			float3 radiance = ambient + SunPower*intensity;
 			radiance*=density;
 			color += T*(radiance - radiance*exp(-density*stepS)) / density;
 			T *= exp(-density*stepS);
-			if(T <= 0.05) break;
+			if(T <= TMax) break;
 		}
 		
 		p += dir*stepS;
@@ -242,5 +244,5 @@ if(dir.z < yThreshold){
 	
 }
 
-return float4(color,1);
+return float4(color,T);
 //return test;
