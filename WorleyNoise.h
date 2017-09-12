@@ -1,34 +1,25 @@
-				x *= s;
-				x += 0.5;
-				float3 p = floor(x);
-				float3 f = frac(x);
+// Texture 1
+float texture1_r_perlin_low     =  0.3;
+float texture1_r_perlin_high    =  1.4;
+float texture1_r_worley_low     = -0.3;
+float texture1_r_worley_high    =  1.3;
+float texture1_gba_worley_low   = -0.4;
+float texture1_gba_worley_high  =  1.0;
 
-				float id = 0.0;
-				float2 res = float2( 1.0 , 1.0);
-				for(int k=-1; k<=1; k++){
-					for(int j=-1; j<=1; j++) {
-						for(int i=-1; i<=1; i++) {
-							float3 b = float3(i, j, k);
-							//voronoi_hash
-							
-							float3 r = float3(b) - f;// + voronoi_hash(p + b, s);
-							float d = dot(r, r);
+float perlin_r = get_perlin_7_octaves(xyz, 4.0);
+float worley_r = get_worley_3_octaves(xyz, 6.0);
+float worley_g = get_worley_3_octaves(xyz, 6.0);
+float worley_b = get_worley_3_octaves(xyz, 12.0);
+float worley_a = get_worley_3_octaves(xyz, 24.0);
 
-							if(d < res.x) {
-								id = dot(p + b, float3(1.0, 57.0, 113.0));
-								res = float2(d, res.x);			
-							} else if(d < res.y) {
-								res.y = d;
-							}
-						}
-					}
-				}
+// Remap the values
+perlin_r = set_range(perlin_r, texture1_r_perlin_low, texture1_r_perlin_high);
+worley_r = set_range(worley_r, texture1_r_worley_low, texture1_r_worley_high);
+worley_g = set_range(worley_g, texture1_gba_worley_low, texture1_gba_worley_high);
+worley_b = set_range(worley_b, texture1_gba_worley_low, texture1_gba_worley_high);
+worley_a = set_range(worley_a, texture1_gba_worley_low, texture1_gba_worley_high);
 
-				float2 result = res;//sqrt(res);
-				id = abs(id);
-
-				if(inverted == 1)
-					return float3(1.0 - result, id);
-				else
-					return float3(result, id);
-			}
+// Combinning the two noises (this is what they refer as "dilating" the perlin noise)
+float worley_perlin = dilate_perlin_worley(perlin_r, worley_r, perlin_to_worley_ratio);
+					
+return float4(worley_perlin, 1.0-worley_g, 1.0-worley_b, 1.0-worley_a);
