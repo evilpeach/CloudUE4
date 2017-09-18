@@ -5,12 +5,12 @@ float3 color = float3(0,0,0);
 float mu = dot(sun_direction, dir);
 float4 test = float4(0,0,0,0);
 
-float texture1_r_perlin_low     =  0.3;
-float texture1_r_perlin_high    =  1.4;
-float texture1_r_worley_low     = -0.3;
-float texture1_r_worley_high    =  1.3;
-float texture1_gba_worley_low   = -0.4;
-float texture1_gba_worley_high  =  1.0;
+float texture1_r_perlin_low     =  Low.r;//0.3;
+float texture1_r_perlin_high    =  High.r;//1.4;
+float texture1_r_worley_low     =  Low.g;//-0.3;
+float texture1_r_worley_high    =  High.g;//1.3;
+float texture1_gba_worley_low   =  Low.b;//-0.4;
+float texture1_gba_worley_high  =  High.b;//1.0;
 float perlin_to_worley_ratio    =  0.4;
 
 //skyRay
@@ -35,7 +35,7 @@ if(dir.z < yThreshold){
 		
 		//test = float4(cloudHeightIn,cloudHeightIn,cloudHeightIn,cloudHeightIn);
 		//p.z += Time*10.3;
-		float largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000001*largeWeatherScale*p.yx, 0.0).x-0.03)*10.0, 0.0, 2.0);
+		float largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000001*largeWeatherScale*p.yx + (SpeedW*Time), 0.0).x-0.03)*10.0, 0.0, 2.0);
 		
 		//p.x += Time*8.3;
 		float weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.0000001*WeatherScale*p.yx, 0.0).x - 0.01) /0.72;
@@ -81,7 +81,7 @@ if(dir.z < yThreshold){
 			
 			
 			//////////////////   ///////////////////////
-			float3 xyz = p * 0.00001 * FPerlin;
+			float3 xyz = p * 0.00001 * FPerlin + (SpeedN * Time);
 
 			float perlin_r = get_perlin_7_octaves(xyz, 4.0);
 			float worley_r = get_worley_3_octaves(xyz, 6.0);
@@ -137,7 +137,7 @@ if(dir.z < yThreshold){
 				f_FBM = worley_b;
 				
 				den = max(0.0, den - 0.125 * f_FBM);
-				density = largeWeather*0.2*min(1.0, 5.0*den);
+				density = largeWeather*0.2*min(1.0, 5.0*den) * (cloudHeightIn + B) * CloudDensity; 
 				
 			}else density = 0.0;
 		}else density = 0.0;
@@ -160,7 +160,7 @@ if(dir.z < yThreshold){
 				float atmosHeightLight = length(pLL - center) - EarthRadius;
 				float cloudHeightLight = clamp((atmosHeightLight-CloudStart)/(CloudHeight), 0.0, 1.0);
 				//pLL.z += Time*10.3;
-				largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000001*largeWeatherScale*pLL.yx, 0.0).x-0.03)*10.0, 0.0, 2.0);
+				largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000001*largeWeatherScale*pLL.yx + (SpeedW*Time), 0.0).x-0.03)*10.0, 0.0, 2.0);
 				
 				//pLL.x += Time*8.3;
 				weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.0000001*WeatherScale*pLL.yx, 0.0).x - 0.01) /0.72;
@@ -204,7 +204,7 @@ if(dir.z < yThreshold){
 					noise = lerp(rgN.x, rgN.y, fN.z);
 					f_FBM += 0.1250*noise;/////////////////3*/
 					
-					float3 xyz = pLL * 0.00001 * FPerlin;
+					float3 xyz = pLL * 0.00001 * FPerlin + (SpeedN * Time);
 			
 					float perlin_r = get_perlin_7_octaves(xyz, 4.0);
 					float worley_r = get_worley_3_octaves(xyz, 6.0);
@@ -257,8 +257,7 @@ if(dir.z < yThreshold){
 						worley_b = set_range(worley_b, texture1_gba_worley_low, texture1_gba_worley_high);
 						f_FBM = worley_b;
 						den = max(0.0, den - 0.125 * f_FBM);
-						LightDensity = largeWeather*0.2*min(1.0, 5.0*den);
-						
+						LightDensity = largeWeather*0.2*min(1.0, 5.0*den) * (cloudHeightLight + BLight);// * CloudDensity;						
 					}else LightDensity = 0.0;
 				}else LightDensity = 0.0;
 				
@@ -271,7 +270,7 @@ if(dir.z < yThreshold){
 			float intensity = beersLaw * phaseFunction * (powder + 1.0)*0.5 * lerp(0.05 + 1.5*pow(min(1.0, density*8.5), 0.3+5.5*cloudHeightIn), 1.0, clamp(lighRayDen*0.4, 0.0, 1.0));
 			//end*/
 
-			float3 ambient = (0.5 + 0.6*cloudHeightIn)*float3(0.2, 0.5, 1.0) + float3(0.8,0.8,0.8) * max(0.0, 1.0-2.0*cloudHeightIn);
+			float3 ambient = (0.5 + 0.6*cloudHeightIn)*CloudBaseColor + CloudTopColor * max(0.0, 1.0-2.0*cloudHeightIn);
 			float3 radiance = AmbientScale * ambient + SunPower*intensity;
 			radiance*=density;
 			color += T*(radiance - radiance*exp(-density*stepS)) / density;
