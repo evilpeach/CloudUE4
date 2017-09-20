@@ -43,44 +43,7 @@ if(dir.z < yThreshold){
 		float cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightIn));
 		//if(cloudShape <= 0.0) return 0.0;
 		if(cloudShape > 0.0){
-			//p.x += Time*12.3;
 			
-			//calculate fbm return FBM1
-			/*float3x3 m = {0.00,  0.80,  0.60, -0.80,  0.36, -0.48, -0.60, -0.48, 0.64};
-			float f_FBM;
-			float3 pFBM = p * 0.00001 * FPerlin; //float den= max(0.0, cloudShape-0.7*fbm(p*.01));
-
-			//noise1
-			float3 pN = floor(pFBM);
-			float3 fN = frac(pFBM);
-			fN = fN*fN*(3.0-2.0*fN);
-			float2 uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-			float2 rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-			float noise = lerp(rgN.x, rgN.y, fN.z);
-			
-			f_FBM = 0.5000*noise; pFBM = mul(m,pFBM)*2.02;/////////////1
-			
-			//noise2
-			pN = floor(pFBM);
-			fN = frac(pFBM);
-			fN = fN*fN*(3.0-2.0*fN);
-			uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-			rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-			noise = lerp(rgN.x, rgN.y, fN.z);
-			
-			f_FBM += 0.2500*noise; pFBM = mul(m,pFBM)*2.03;///////////////2
-			
-			//noise3
-			pN = floor(pFBM);
-			fN = frac(pFBM);
-			fN = fN*fN*(3.0-2.0*fN);
-			uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-			rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-			noise = lerp(rgN.x, rgN.y, fN.z);
-			f_FBM += 0.1250*noise;/////////////////3*/
-			
-			
-			//////////////////   ///////////////////////
 			float3 xyz = p * 0.00001 * FPerlin + (SpeedN * Time);
 
 			float perlin_r = get_perlin_7_octaves(xyz, 4.0);
@@ -95,40 +58,7 @@ if(dir.z < yThreshold){
 			
 			//if(den <= 0.0) return 0.0;
 			if(den > 0.0){
-				//p.y += Time*15.2;
-				//den= max(0.0, den-0.2*fbm(p*0.05));
-				//calculate FBM
-				/*pFBM = p * 0.0005 * FPerlin;
-
-				//noise1
-				pN = floor(pFBM);
-				fN = frac(pFBM);
-				fN = fN*fN*(3.0-2.0*fN);
-				uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-				rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-				noise = lerp(rgN.x, rgN.y, fN.z);
 				
-				f_FBM = 0.5000*noise; pFBM = mul(m,pFBM)*2.02;/////////////1
-				
-				//noise2
-				pN = floor(pFBM);
-				fN = frac(pFBM);
-				fN = fN*fN*(3.0-2.0*fN);
-				uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-				rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-				noise = lerp(rgN.x, rgN.y, fN.z);
-				
-				f_FBM += 0.2500*noise; pFBM = mul(m,pFBM)*2.03;///////////////2
-				
-				//noise3
-				pN = floor(pFBM);
-				fN = frac(pFBM);
-				fN = fN*fN*(3.0-2.0*fN);
-				uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-				rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-				noise = lerp(rgN.x, rgN.y, fN.z);
-				f_FBM += 0.1250*noise;/////////////////3
-				*/
 				
 				xyz = p * 0.00001 * FPerlin;
 				
@@ -146,16 +76,19 @@ if(dir.z < yThreshold){
 		//density = clamp(density , 0.0,  1.0);
 		if(density > 0.0){
 			
-			/////////////////////////////////////LIGHT//////////////////////////////////////////////////////////
+			//////////////////////////////////////////LIGHT//////////////////////////////////////////////////////////
 			//float zMaxl = 600;
 			float LightDensity = 0;
 			float stepL = zMaxl/LightStep;
 			float lighRayDen = 0.0;    
 			float3 pL = p;
-			pL += sun_direction*stepL * hashSky;//*hash(dot(p, vec3(12.256, 2.646, 6.356)) + iTime);
+			pL += sun_direction*stepL*hashSky;//*hash(dot(p, vec3(12.256, 2.646, 6.356)) + iTime);
 			for(int j = 0; j < LightStep; j++){
 				//////sample ///////
 				float3 pLL = pL + sun_direction * float(j) * stepL * gled;
+				int3 randpos = int3(Parameters.SvPosition.xy, View.StateFrameIndexMod8);
+				float3 rand = float3(Rand3DPCG16(randpos).x, Rand3DPCG16(randpos).y, 0) / 0xffff;
+				pLL += rand * stepL * gled * momo;
 				
 				float atmosHeightLight = length(pLL - center) - EarthRadius;
 				float cloudHeightLight = clamp((atmosHeightLight-CloudStart)/(CloudHeight), 0.0, 1.0);
@@ -168,41 +101,7 @@ if(dir.z < yThreshold){
 				cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightLight));
 				//if(cloudShape <= 0.0) return 0.0;
 				if(cloudShape > 0.0){
-					//pLL.x += Time*12.3;
-					//p
-					//calculate fbm return FBM1
-					/*float3x3 m = {0.00,  0.80,  0.60, -0.80,  0.36, -0.48, -0.60, -0.48,  0.64};
-					float f_FBM;
-					float3 pFBM = pLL * 0.00001 * FPerlin; //float den= max(0.0, cloudShape-0.7*fbm(p*.01));
-
-					//noise1
-					float3 pN = floor(pFBM);
-					float3 fN = frac(pFBM);
-					fN = fN*fN*(3.0-2.0*fN);
-					float2 uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-					float2 rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-					float noise = lerp(rgN.x, rgN.y, fN.z);
 					
-					f_FBM = 0.5000*noise; pFBM = mul(m,pFBM)*2.02;/////////////1
-					
-					//noise2
-					pN = floor(pFBM);
-					fN = frac(pFBM);
-					fN = fN*fN*(3.0-2.0*fN);
-					uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-					rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-					noise = lerp(rgN.x, rgN.y, fN.z);
-					
-					f_FBM += 0.2500*noise; pFBM = mul(m,pFBM)*2.03;///////////////2
-					
-					//noise3
-					pN = floor(pFBM);
-					fN = frac(pFBM);
-					fN = fN*fN*(3.0-2.0*fN);
-					uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-					rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-					noise = lerp(rgN.x, rgN.y, fN.z);
-					f_FBM += 0.1250*noise;/////////////////3*/
 					
 					float3 xyz = pLL * 0.00001 * FPerlin + (SpeedN * Time);
 			
@@ -267,7 +166,7 @@ if(dir.z < yThreshold){
 			float scatterAmount = lerp(0.008, 1.0, smoothstep(0.96, 0.0, mu));
 			float beersLaw = exp(-stepL*lighRayDen) + 0.5*scatterAmount*exp(-0.1*stepL*lighRayDen) + scatterAmount*0.4*exp(-0.02*stepL*lighRayDen);
 			float powder = (1 - beersLaw * beersLaw) * DarkOutliner;
-			float intensity = beersLaw * phaseFunction * (powder + 1.0)*0.5 * lerp(0.05 + 1.5*pow(min(1.0, density*8.5), 0.3+5.5*cloudHeightIn), 1.0, clamp(lighRayDen*0.4, 0.0, 1.0));
+			float intensity = beersLaw * /*phaseFunction*/ henyey * (powder + 1.0)*0.5 * lerp(0.05 + 1.5*pow(min(1.0, density*8.5), 0.3+5.5*cloudHeightIn), 1.0, clamp(lighRayDen*0.4, 0.0, 1.0));
 			//end*/
 
 			float3 ambient = (0.5 + 0.6*cloudHeightIn)*CloudBaseColor + CloudTopColor * max(0.0, 1.0-2.0*cloudHeightIn);
@@ -286,5 +185,6 @@ if(dir.z < yThreshold){
 	
 }
 
-return float4(color,T);
+if(Depth <= 0.2) return float4(0,0,0,1);
+else return float4(color,T);
 //return test;
