@@ -117,39 +117,7 @@ if(dir.z < yThreshold){
 					
 					//if(den <= 0.0) return 0.0;
 					if(den > 0.0){
-						//p.y += Time*15.2;
-						//den= max(0.0, den-0.2*fbm(p*0.05));
-						//calculate FBM
-						/*pFBM = pLL * 0.005 * FPerlin;
-
-						//noise1
-						pN = floor(pFBM);
-						fN = frac(pFBM);
-						fN = fN*fN*(3.0-2.0*fN);
-						uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-						rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-						noise = lerp(rgN.x, rgN.y, fN.z);
-						
-						f_FBM = 0.5000*noise; pFBM = mul(m,pFBM)*2.02;/////////////1
-						
-						//noise2
-						pN = floor(pFBM);
-						fN = frac(pFBM);
-						fN = fN*fN*(3.0-2.0*fN);
-						uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-						rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-						noise = lerp(rgN.x, rgN.y, fN.z);
-						
-						f_FBM += 0.2500*noise; pFBM = mul(m,pFBM)*2.03;///////////////2
-						
-						//noise3
-						pN = floor(pFBM);
-						fN = frac(pFBM);
-						fN = fN*fN*(3.0-2.0*fN);
-						uvN = (pN.xy+float2(37.0,17.0)*pN.z) + fN.xy;
-						rgN = NoiseTex.SampleLevel(NoiseTexSampler, (uvN+0.5)/256.0, 0.0).yx;
-						noise = lerp(rgN.x, rgN.y, fN.z);
-						f_FBM += 0.1250*noise;/////////////////3*/
+					
 						xyz = pLL * 0.00001 * FPerlin;
 						
 						float worley_b = get_worley_3_octaves(xyz, 8.0);
