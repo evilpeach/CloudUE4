@@ -33,13 +33,9 @@ if(dir.z < yThreshold){
 		float atmosHeight = length(p - center) - EarthRadius;
 		cloudHeightIn = clamp((atmosHeight-CloudStart)/(CloudHeight), 0.0, 1.0);
 		
-		//test = float4(cloudHeightIn,cloudHeightIn,cloudHeightIn,cloudHeightIn);
-		//p.z += Time*10.3;
 		float largeWeather = clamp((WeatherTex.SampleLevel(WeatherTexSampler, -0.0000001*largeWeatherScale*p.yx + (SpeedW*Time), 0.0).x-0.03)*10.0, 0.0, 2.0);
-		
-		//p.x += Time*8.3;
 		float weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.0000001*WeatherScale*p.yx, 0.0).x - 0.01) /0.72;
-		weather *= smoothstep(0.0, 0.5, cloudHeightIn) * smoothstep(1.0, 0.5, cloudHeightIn);
+		weather *= smoothstep(ws.x, ws.y, cloudHeightIn) * smoothstep(ws.z, ws.w, cloudHeightIn);
 		float cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightIn));
 		//if(cloudShape <= 0.0) return 0.0;
 		if(cloudShape > 0.0){
@@ -54,19 +50,19 @@ if(dir.z < yThreshold){
 			
 			float f_FBM = dilate_perlin_worley(perlin_r, worley_r, perlin_to_worley_ratio);
 			
-			float den = max(0.0, cloudShape - 0.5 * f_FBM);
+			float den = max(0.0, cloudShape - PWDen * (1 - f_FBM));
 			
 			//if(den <= 0.0) return 0.0;
 			if(den > 0.0){
 				
 				
-				xyz = p * 0.00001 * FPerlin;
+				xyz = p * 0.00001 * FWorley;
 				
 				float worley_b = get_worley_3_octaves(xyz, 8.0);
 				worley_b = set_range(worley_b, texture1_gba_worley_low, texture1_gba_worley_high);
 				f_FBM = worley_b;
 				
-				den = max(0.0, den - 0.125 * f_FBM);
+				den = max(0.0, den - WDen * (1 - f_FBM));
 				density = largeWeather*0.2*min(1.0, 5.0*den) * (cloudHeightIn + B) * CloudDensity; 
 				
 			}else density = 0.0;
@@ -97,7 +93,7 @@ if(dir.z < yThreshold){
 				
 				//pLL.x += Time*8.3;
 				weather = largeWeather*max(0.0, WeatherTex.SampleLevel(WeatherTexSampler, 0.0000001*WeatherScale*pLL.yx, 0.0).x - 0.01) /0.72;
-				weather *= smoothstep(0.0, 0.5, cloudHeightLight) * smoothstep(1.0, 0.5, cloudHeightLight);
+				weather *= smoothstep(ws.x, ws.y, cloudHeightLight) * smoothstep(ws.z, ws.w, cloudHeightLight);
 				cloudShape = pow(weather, 0.3+1.5*smoothstep(0.2, 0.5, cloudHeightLight));
 				//if(cloudShape <= 0.0) return 0.0;
 				if(cloudShape > 0.0){
@@ -113,31 +109,32 @@ if(dir.z < yThreshold){
 					
 					float f_FBM = dilate_perlin_worley(perlin_r, worley_r, perlin_to_worley_ratio);
 					
-					float den = max(0.0, cloudShape - 0.5 * f_FBM);
+					float den = max(0.0, cloudShape - PWDen * (1 - f_FBM));
 					
 					//if(den <= 0.0) return 0.0;
 					if(den > 0.0){
 					
-						xyz = pLL * 0.00001 * FPerlin;
+						xyz = pLL * 0.00001 * FWorley;
 						
 						float worley_b = get_worley_3_octaves(xyz, 8.0);
 						worley_b = set_range(worley_b, texture1_gba_worley_low, texture1_gba_worley_high);
 						f_FBM = worley_b;
-						den = max(0.0, den - 0.125 * f_FBM);
-						LightDensity = largeWeather*0.2*min(1.0, 5.0*den) * (cloudHeightLight + BLight);// * CloudDensity;						
+						den = max(0.0, den - WDen * (1 - f_FBM));
+						LightDensity = largeWeather*0.2*min(1.0, 5.0*den) * (cloudHeightLight + BLight) * CloudDensity;						
 					}else LightDensity = 0.0;
 				}else LightDensity = 0.0;
 				
 				lighRayDen += LightDensity;
 			}
 			
+			lighRayDen *= ShadowDensity;
 			float scatterAmount = lerp(0.008, 1.0, smoothstep(0.96, 0.0, mu));
-			float beersLaw = exp(-stepL*lighRayDen) + 0.5*scatterAmount*exp(-0.1*stepL*lighRayDen) + scatterAmount*0.4*exp(-0.02*stepL*lighRayDen);
+			float beersLaw = exp(-stepL*lighRayDen);// + 0.5*scatterAmount*exp(-0.1*stepL*lighRayDen) + scatterAmount*0.4*exp(-0.02*stepL*lighRayDen);
 			float powder = (1 - beersLaw * beersLaw) * DarkOutliner;
-			float intensity = beersLaw * /*phaseFunction*/ henyey * (powder + 1.0)*0.5 * lerp(0.05 + 1.5*pow(min(1.0, density*8.5), 0.3+5.5*cloudHeightIn), 1.0, clamp(lighRayDen*0.4, 0.0, 1.0));
+			float intensity = beersLaw * henyey * (powder + 1.0)*0.5;// * lerp(0.05 + 1.5*pow(min(1.0, density*8.5), 0.3+5.5*cloudHeightIn), 1.0, clamp(lighRayDen*0.4, 0.0, 1.0));
 			//end*/
 
-			float3 ambient = (0.5 + 0.6*cloudHeightIn)*CloudBaseColor + CloudTopColor * max(0.0, 1.0-2.0*cloudHeightIn);
+			float3 ambient = (0.5 + 0.6*cloudHeightIn)*CloudBaseColor + CloudTopColor * ( 1.0 - max(0.0, 1.0-2.0*cloudHeightIn));
 			float3 radiance = AmbientScale * ambient + SunPower*intensity;
 			radiance*=density;
 			color += T*(radiance - radiance*exp(-density*stepS)) / density;
